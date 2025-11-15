@@ -1,0 +1,122 @@
+unet:0.7466352024681742  69.4m
+
+uhrnet 0.7616 
+
+deeplabv3 0.7855 22m
+
+deeplabv3 albu BCE+IOU+DIce+boundloss 0.8302 22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def compute_metrics(seg_pred, seg_target):
+    seg_pred = torch.argmax(seg_pred, dim=1)
+    seg_target = seg_target.long()
+    num_classes = 4
+    SEN_list, SPE_list, ACC_list, DSC_list, IoU_list = [], [], [], [], []
+
+    for cls in range(num_classes):
+        TP = ((seg_pred == cls) & (seg_target == cls)).sum().item()
+        TN = ((seg_pred != cls) & (seg_target != cls)).sum().item()
+        FP = ((seg_pred == cls) & (seg_target != cls)).sum().item()
+        FN = ((seg_pred != cls) & (seg_target == cls)).sum().item()
+
+        SEN = TP / (TP + FN) if (TP + FN) != 0 else 0
+        SPE = TN / (TN + FP) if (TN + FP) != 0 else 0
+        ACC = (TP + TN) / (TP + TN + FP + FN) if (TP + TN + FP + FN) != 0 else 0
+        DSC = 2 * TP / (2 * TP + FP + FN) if (2 * TP + FP + FN) != 0 else 0
+        IoU = TP / (TP + FP + FN) if (TP + FP + FN) != 0 else 0
+
+        SEN_list.append(SEN)
+        SPE_list.append(SPE)
+        ACC_list.append(ACC)
+        DSC_list.append(DSC)
+        IoU_list.append(IoU)
+
+    mean_SEN = sum(SEN_list) / num_classes
+    mean_SPE = sum(SPE_list) / num_classes
+    mean_ACC = sum(ACC_list) / num_classes
+    mean_DSC = sum(DSC_list) / num_classes
+    mean_IoU = sum(IoU_list) / num_classes
+
+    return mean_SEN, mean_SPE, mean_ACC, mean_DSC, mean_IoU
+
+
+def compute_metrics1(pred, target, num_classes=4):
+    # 计算每个类别的IoU
+    IoU = np.zeros(num_classes)
+    pixel_accuracy = 0
+    mean_accuracy = 0
+    mean_IoU = 0
+    pred = torch.argmax(pred, dim=1)
+    target = target.long().squeeze()
+    # print(pred.shape,target.shape)
+    # 计算每个类别的TP, FP, FN
+    for cls in range(num_classes):
+        # 计算混淆矩阵
+        intersection = torch.sum((pred == cls) & (target == cls))
+        union = torch.sum((pred == cls) | (target == cls))
+        IoU[cls] = intersection / union if union != 0 else 0
+
+    # 计算像素精度
+    pixel_accuracy = torch.sum(pred == target) / target.numel()
+
+    # 计算每个类别的准确率
+    for cls in range(num_classes):
+        if torch.sum(target == cls) != 0:
+            mean_accuracy += torch.sum((pred == cls) & (target == cls)) / torch.sum(target == cls)
+
+    mean_accuracy /= num_classes
+    mean_IoU = np.mean(IoU)
+
+    # 计算F1分数
+    precision = IoU / (IoU + (1 - IoU))  # 精确率
+    recall = IoU  # 召回率
+    F1_score = 2 * (precision * recall) / (precision + recall)  # F1分数
+    if F1_score=="nan":
+        F1_score=0
+    mean_F1_score = np.mean(F1_score)
+
+    return IoU,pixel_accuracy,mean_accuracy,mean_IoU,mean_F1_score
+

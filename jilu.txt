@@ -1,0 +1,7 @@
+Training Completed
+Final Validation Loss: 2.9815
+Final Class1 IoU: 0.2095
+Final Class2 IoU: 0.7591
+Final Class3 IoU: 0.7066
+Final Mean IoU: 0.5584
+Final Best IoU: 0.6089
